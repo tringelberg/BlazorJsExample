@@ -1,0 +1,41 @@
+﻿@page "/"
+@using BlazorJsExample.Components
+@using BlazorJsExample.Records;
+@using System.Globalization;
+
+<OpenLayersMap Width="100%" Height="400px" Points="@Points" />
+
+<p>Decimal coordinates (lon, lat)):</p>
+<textarea @bind="@Coordinates" style="width: 400px; height: 200px"></textarea>
+<button @onclick="AddPointsToMap">Add to map</button>
+
+
+@code {
+    public string? Coordinates { get;set; }
+    public IEnumerable<Point?>? Points { get; set; } = new List<Point?>()
+    {
+        new Point(0,0)
+    };
+
+    public void AddPointsToMap()
+    {
+        Points = Coordinates?.Split("\n")
+                             .Select(line => line.Split(','))
+                             .Select(coords => CreatePoint(coords))
+                             .Where(point => point != null).ToList();
+    }
+
+    private Point? CreatePoint(string[] coords)
+    {
+        string? lon = coords.ElementAtOrDefault(0)?.Trim();
+        string? lat = coords.ElementAtOrDefault(1)?.Trim();
+        CultureInfo variant = CultureInfo.InvariantCulture;
+
+        if (!double.TryParse(lon, variant, out double decLon) || !double.TryParse(lat, variant, out double decLat))
+        {
+            return null;
+        }
+
+        return new Point(decLon, decLat);
+    }
+}

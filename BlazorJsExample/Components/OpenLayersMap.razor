@@ -1,0 +1,58 @@
+﻿@using System.Diagnostics;
+@using BlazorJsExample.Records;
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+<div id="map-container" style="width: @Width; height: @Height"></div>
+
+@code {
+    private IJSObjectReference? _olModule;
+    private IEnumerable<Point?>? _oldPoints;
+
+    [Parameter]
+    public IEnumerable<Point?>? Points { get; set; }
+
+    [Parameter]
+    public string? Height { get; set; }
+
+    [Parameter]
+    public string? Width { get; set; }
+
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _olModule = await JS.InvokeAsync<IJSObjectReference>("import", "/scripts/ol_interop.js");
+            await _olModule.InvokeVoidAsync("loadOpenLayersAsync");
+            await _olModule.InvokeVoidAsync("createMapAsync");
+
+            await OnValuesChanged();
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+        => await OnValuesChanged();
+
+    private async Task OnValuesChanged()
+    {
+        if (_olModule is null)
+        {
+            return;
+        }
+
+        if (_oldPoints != Points)
+        {
+            _oldPoints = Points;
+            await _olModule.InvokeVoidAsync("updatePointsAsync", Points);
+        }
+    }
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        if (_olModule is not null)
+        {
+            await _olModule.DisposeAsync();
+        }
+    }
+}
